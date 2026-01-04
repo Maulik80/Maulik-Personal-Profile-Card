@@ -1,12 +1,10 @@
-// server/controllers/authController.js
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const userModel = require('../models/userModel'); // Use your User model file path
-const transporter = require('../config/nodemailer'); // Use your Nodemailer config
-
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import userModel from '../models/userModel.js'; // Ensure this matches your folder name (Model vs models)
+import transporter from '../config/nodemailer.js';
 
 // --- 1. LOGIN ---
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -41,7 +39,7 @@ exports.login = async (req, res) => {
 }
 
 // --- 2. REGISTER ---
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -76,7 +74,7 @@ exports.register = async (req, res) => {
 }
 
 // --- 3. LOGOUT ---
-exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
     try {
         res.clearCookie('token', {
             httpOnly: true,
@@ -90,7 +88,7 @@ exports.logout = async (req, res) => {
 }
 
 // --- 4. SEND VERIFICATION OTP ---
-exports.sendVerifyOtp = async (req, res) => {
+export const sendVerifyOtp = async (req, res) => {
     try {
         const { userId } = req.body; // userId comes from userAuth middleware
         const user = await userModel.findById(userId);
@@ -129,7 +127,7 @@ exports.sendVerifyOtp = async (req, res) => {
 }
 
 // --- 5. VERIFY EMAIL OTP ---
-exports.verifyEmail = async (req, res) => {
+export const verifyEmail = async (req, res) => {
     const { userId, otp } = req.body;
 
     if (!userId || !otp) {
@@ -164,7 +162,7 @@ exports.verifyEmail = async (req, res) => {
 }
 
 // --- 6. CHECK AUTHENTICATION STATUS ---
-exports.isAuthenticated = async (req, res) => {
+export const isAuthenticated = async (req, res) => {
     try {
         return res.json({ success: true });
     } catch (error) {
@@ -173,7 +171,7 @@ exports.isAuthenticated = async (req, res) => {
 }
 
 // --- 7. SEND PASSWORD RESET OTP ---
-exports.sendResetOtp = async (req, res) => {
+export const sendResetOtp = async (req, res) => {
     const { email } = req.body;
 
     if (!email) return res.json({ success: false, message: "Email is required" });
@@ -212,7 +210,7 @@ exports.sendResetOtp = async (req, res) => {
 }
 
 // --- 8. RESET PASSWORD ---
-exports.resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     if (!email || !otp || !newPassword) {

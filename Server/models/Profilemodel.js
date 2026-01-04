@@ -1,23 +1,16 @@
-// server/Model/profileModel.js
 import mongoose from "mongoose";
 
 const profileSchema = new mongoose.Schema({
-    // Phase 4: Reference to the User Model
-    userId: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'user', 
-        required: true 
-    },
+    userId: { type: String, required: true }, // Links card to the logged-in user
     name: { type: String, required: true },
-    age: { type: Number, required: true },
+    age: { type: String, required: true },
     city: { type: String, required: true },
     bio: { type: String },
-    skills: { type: String }, // Stored as comma-separated or converted to Array
+    skills: { type: String },
     email: { type: String },
     phone: { type: String },
-    photo: { type: String }, // Stores Base64 string for the image
-    createdAt: { type: Date, default: Date.now }
-});
+    photo: { type: String }, // Stores Base64 image string
+}, { timestamps: true });
 
 const profileModel = mongoose.models.profile || mongoose.model('profile', profileSchema);
 export default profileModel;

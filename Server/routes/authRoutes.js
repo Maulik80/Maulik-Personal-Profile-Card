@@ -1,23 +1,16 @@
-// server/routes/authRoutes.js
-const express = require('express');
-const { register, login, logout, sendVerifyOtp, verifyEmail, sendResetOtp, resetPassword, isAuthenticated } = require('../controllers/authController');
-const userAuth = require('../middleware/userAuth');
+import express from 'express';
+import { register, login, logout, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword } from '../controllers/authController.js';
+import userAuth from '../middleware/userAuth.js';
 
 const authRouter = express.Router();
 
 authRouter.post('/register', register);
 authRouter.post('/login', login);
 authRouter.post('/logout', logout);
-
-// Verification Routes
 authRouter.post('/send-verify-otp', userAuth, sendVerifyOtp);
-// verifyEmail controller logic would go here if implemented
-
-// Password Reset Routes (Phase 5)
+authRouter.post('/verify-account', userAuth, verifyEmail);
+authRouter.get('/is-auth', userAuth, isAuthenticated);
 authRouter.post('/send-reset-otp', sendResetOtp);
 authRouter.post('/reset-password', resetPassword);
 
-// Check if user is authenticated
-authRouter.get('/is-auth', userAuth, isAuthenticated); // Assuming you have this simple checker
-
-module.exports = authRouter;
+export default authRouter;

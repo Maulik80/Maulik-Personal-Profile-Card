@@ -1,14 +1,16 @@
-/* client/src/pages/Register.jsx */
+/* Client/src/pages/Register.jsx */
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
+import { toast } from 'react-toastify'; // Import Toast
 import '../styles/App.css';
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
   const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContext);
   const navigate = useNavigate();
 
@@ -20,12 +22,13 @@ const Register = () => {
       if (data.success) {
         setIsLoggedin(true);
         getUserData();
-        navigate('/'); // Redirect to Dashboard
+        toast.success("Account Created! Welcome."); // Success Message
+        navigate('/'); 
       } else {
-        alert(data.message);
+        toast.error(data.message); // Error Message
       }
     } catch (error) {
-      alert(error.message);
+      toast.error(error.message);
     }
   };
 

@@ -1,34 +1,37 @@
-// server/server.js
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const cookieParser = require('cookie-parser'); // Fixed spelling
-require('dotenv').config();
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import 'dotenv/config'; // Auto-loads .env variables
 
-// Import Routes
-const authRouter = require('./routes/authRoutes');
-const profileRouter = require('./routes/profileRoutes'); // Phase 7: Profile Routes
+// Import Routes (Note the .js extension is required in ES Modules)
+import authRouter from './routes/authRoutes.js';
+import profileRouter from './routes/profileRoutes.js';
 
 const app = express();
 
-// --- Middleware Configuration ---
-app.use(express.json()); // 1. Parse JSON body
-app.use(cookieParser()); // 2. Parse Cookies
+// --- 1. Middleware Configuration ---
+app.use(express.json()); // Parse JSON bodies
+app.use(cookieParser()); // Parse Cookies
 
-// 3. Configure CORS (Critical for cookies to work)
+// Configure CORS (Critical for Frontend-Backend communication)
 app.use(cors({ 
-    origin: 'http://localhost:5173', // Frontend URL
-    credentials: true // Allow sending cookies/tokens
+    origin: 'http://localhost:5173', // Must match your Vite Frontend URL
+    credentials: true // Allow cookies to be sent/received
 })); 
 
-// --- API Routes ---
-app.get('/', (req, res) => res.send("🚀 Profile Manager API is running..."));
-app.use('/api/auth', authRouter);      // Auth endpoints (Login/Register)
-app.use('/api/profiles', profileRouter); // Profile endpoints (CRUD)
+// --- 2. API Routes ---
+// server/server.js
+// ...
+app.get('/', (req, res) => res.send("🚀 Maulik-Personal-Profile-Card API is running...")); 
+// ...
+app.use('/api/auth', authRouter);      // Auth: Login, Register, Verify
+app.use('/api/profiles', profileRouter); // Profiles: Create, Get, Update, Delete
 
-// --- Database Connection & Server Start ---
+// --- 3. Database Connection & Server Start ---
 const PORT = process.env.PORT || 5000;
-const URI = process.env.MONGODB_URI;
+// Note: Ensure your .env uses MONGODB_URL or update this to MONGODB_URI
+const URI = process.env.MONGODB_URL || process.env.MONGODB_URI; 
 
 mongoose.connect(URI)
     .then(() => {

@@ -1,28 +1,45 @@
-// client/src/context/AppContext.jsx
+/* Client/src/context/AppContext.jsx */
 import React, { createContext, useEffect, useState } from "react";
 import axios from "axios";
+import { toast } from 'react-toastify';
 
 export const AppContext = createContext();
 
 export const AppContextProvider = (props) => {
+    // Backend URL from .env
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+    // Configure Axios globally
+    axios.defaults.withCredentials = true;
+
     // Global Auth State
     const [isLoggedin, setIsLoggedin] = useState(false);
     const [userData, setUserData] = useState(null);
     const [isAccountVerified, setIsAccountVerified] = useState(false);
 
-    // Backend URL from .env
-    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+    // --- 1. Define getUserData FIRST ---
+    const getUserData = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/user/data');
+            if (data.success) {
+                setUserData(data.userData);
+                setIsAccountVerified(data.userData.isAccountVerified); 
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            // Optional: toast.error("Failed to load user data"); 
+            // Kept silent to avoid spamming errors on logout
+        }
+    };
 
-    // Configure Axios to always send/receive cookies
-    axios.defaults.withCredentials = true;
-
-    // Function to check if user is authenticated (Check Cookie)
+    // --- 2. Define getAuthState SECOND (Because it uses getUserData) ---
     const getAuthState = async () => {
         try {
             const { data } = await axios.get(backendUrl + '/api/auth/is-auth');
             if (data.success) {
                 setIsLoggedin(true);
-                getUserData(); // Fetch user details if logged in
+                getUserData(); // <--- Now this works because getUserData exists above
             } else {
                 setIsLoggedin(false);
             }
@@ -31,17 +48,20 @@ export const AppContextProvider = (props) => {
         }
     };
 
-    // Function to fetch User Data (Name, Email, Verification Status)
-    const getUserData = async () => {
+    // --- 3. Logout Function ---
+    const logout = async () => {
         try {
-            const { data } = await axios.get(backendUrl + '/api/user/data');
+            const { data } = await axios.post(backendUrl + '/api/auth/logout');
             if (data.success) {
-                setUserData(data.userData);
-                // Important: Sets the verified flag for "Verified Actions"
-                setIsAccountVerified(data.userData.isAccountVerified); 
+                setIsLoggedin(false);
+                setUserData(null);
+                setIsAccountVerified(false);
+                toast.success("Logged Out Successfully");
+            } else {
+                toast.error(data.message);
             }
         } catch (error) {
-            console.error("User Data Fetch Failed:", error.message);
+            toast.error(error.message);
         }
     };
 
@@ -52,14 +72,12 @@ export const AppContextProvider = (props) => {
 
     const value = {
         backendUrl,
-        isLoggedin,
-        setIsLoggedin,
-        userData,
-        setUserData,
-        isAccountVerified,
-        setIsAccountVerified,
-        getUserData,
-        getAuthState
+        isLoggedin, setIsLoggedin,
+        userData, setUserData,
+        isAccountVerified, setIsAccountVerified,
+        getUserData, 
+        getAuthState,
+        logout
     };
 
     return (

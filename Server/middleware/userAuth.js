@@ -1,5 +1,4 @@
-// server/middleware/userAuth.js
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 const userAuth = async (req, res, next) => {
     const { token } = req.cookies;
@@ -12,15 +11,14 @@ const userAuth = async (req, res, next) => {
         const tokenDecode = jwt.verify(token, process.env.JWT_SECRET);
 
         if (tokenDecode.id) {
-            req.body.userId = tokenDecode.id; // Attach User ID to the request
+            req.body.userId = tokenDecode.id; // Adds User ID to the request
+            next(); // Allow request to proceed
         } else {
             return res.json({ success: false, message: 'Not Authorized. Login Again.' });
         }
-
-        next(); // Proceed to the next function (e.g., Save Profile)
     } catch (error) {
         return res.json({ success: false, message: error.message });
     }
 }
 
-module.exports = userAuth;
+export default userAuth;
