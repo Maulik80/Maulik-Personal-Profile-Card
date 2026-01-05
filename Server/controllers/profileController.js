@@ -1,7 +1,7 @@
 // server/controllers/profileController.js
 
 // ✅ FIX: Ensure the import matches the new file name exactly (case-sensitive)
-import profileModel from '../models/profileModel.js'; 
+import profileModel from '../models/Profilemodel.js';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 
