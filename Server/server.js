@@ -7,6 +7,7 @@ import 'dotenv/config'; // Auto-loads .env variables
 // Import Routes (Note the .js extension is required in ES Modules)
 import authRouter from './routes/authRoutes.js';
 import profileRouter from './routes/profileRoutes.js';
+import userRouter from './routes/userRoutes.js';
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use(cors({
 app.get('/', (req, res) => res.send("🚀 Maulik-Personal-Profile-Card API is running...")); 
 // ...
 app.use('/api/auth', authRouter);      // Auth: Login, Register, Verify
+app.use('/api/user', userRouter);
 app.use('/api/profiles', profileRouter); // Profiles: Create, Get, Update, Delete
 
 // --- 3. Database Connection & Server Start ---
