@@ -170,7 +170,7 @@ export const isAuthenticated = async (req, res) => {
     }
 }
 
-// --- 7. SEND PASSWORD RESET OTP ---
+// --- 7. SEND PASSWORD RESET OTP/LINK ---
 export const sendResetOtp = async (req, res) => {
     const { email } = req.body;
 
@@ -180,29 +180,47 @@ export const sendResetOtp = async (req, res) => {
         const user = await userModel.findOne({ email });
         if (!user) return res.json({ success: false, message: "User not found" });
 
+        // Generate OTP
         const otp = String(Math.floor(100000 + Math.random() * 900000));
 
+        // Set Expiry to 10 MINUTES (10 * 60 * 1000)
         user.resetOtp = otp;
-        user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000; // 15 Minutes expiry
+        user.resetOtpExpireAt = Date.now() + 10 * 60 * 1000; 
         await user.save();
+
+        // Create Magic Link (Assuming Frontend runs on port 5173)
+        // You should put 'http://localhost:5173' in your .env as FRONTEND_URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetLink = `${frontendUrl}/reset-password?email=${email}&otp=${otp}`;
 
         const mailOptions = {
             from: process.env.SENDER_EMAIL,
             to: user.email,
-            subject: 'Reset Password OTP',
+            subject: 'Reset Password Request',
             html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;">
-                    <h2 style="color: #ff4d4f;">Reset Password Request</h2>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+                    <h2 style="color: #ff4d4f; text-align: center;">Reset Password</h2>
                     <p>Hello ${user.name},</p>
-                    <p>Use the OTP below to reset your password:</p>
-                    <h1 style="background: #fff0f0; padding: 10px; text-align: center; letter-spacing: 5px; color: #d63031;">${otp}</h1>
-                    <p>This code expires in 15 minutes.</p>
+                    <p>You requested to reset your password. Click the button below to proceed:</p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetLink}" style="background-color: #ff4d4f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                            Reset Password
+                        </a>
+                    </div>
+
+                    <p style="text-align: center; color: #666;">Or enter this code manually:</p>
+                    <h2 style="text-align: center; letter-spacing: 5px; color: #333;">${otp}</h2>
+                    
+                    <p style="font-size: 12px; color: #999; text-align: center; margin-top: 20px;">
+                        This link expires in 10 minutes. If you didn't request this, ignore this email.
+                    </p>
                 </div>
             `
         };
 
         await transporter.sendMail(mailOptions);
-        return res.json({ success: true, message: "Reset OTP sent to your email" });
+        return res.json({ success: true, message: "Reset Link sent to your email" });
 
     } catch (error) {
         return res.json({ success: false, message: error.message });

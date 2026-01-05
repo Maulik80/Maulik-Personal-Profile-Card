@@ -10,6 +10,7 @@ const profileSchema = new mongoose.Schema({
     email: { type: String },
     phone: { type: String },
     photo: { type: String }, // Stores Base64 image string
+    views: { type: Number, default: 0 }
 }, { timestamps: true });
 
 const profileModel = mongoose.models.profile || mongoose.model('profile', profileSchema);

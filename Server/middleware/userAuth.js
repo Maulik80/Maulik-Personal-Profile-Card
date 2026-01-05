@@ -1,3 +1,4 @@
+/* Server/middleware/userAuth.js */
 import jwt from 'jsonwebtoken';
 
 const userAuth = async (req, res, next) => {
@@ -11,8 +12,13 @@ const userAuth = async (req, res, next) => {
         const tokenDecode = jwt.verify(token, process.env.JWT_SECRET);
 
         if (tokenDecode.id) {
-            req.body.userId = tokenDecode.id; // Adds User ID to the request
-            next(); // Allow request to proceed
+            // ✅ FIX: Ensure req.body exists before adding userId
+            if (!req.body) {
+                req.body = {};
+            }
+
+            req.body.userId = tokenDecode.id; 
+            next(); 
         } else {
             return res.json({ success: false, message: 'Not Authorized. Login Again.' });
         }

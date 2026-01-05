@@ -1,42 +1,82 @@
 // server/controllers/profileController.js
-const profileModel = require('../models/Profilemodel'); // Ensure this matches your file name
+
+// ✅ FIX: Ensure the import matches the new file name exactly (case-sensitive)
+import profileModel from '../models/profileModel.js'; 
+import { v2 as cloudinary } from 'cloudinary';
+import fs from 'fs';
+
+// --- HELPER: Upload to Cloudinary & Clean Temp File ---
+const uploadImageToCloudinary = async (filePath) => {
+    try {
+        const imageUpload = await cloudinary.uploader.upload(filePath, { resource_type: 'image' });
+        return imageUpload.secure_url;
+    } catch (error) {
+        console.error("Cloudinary Upload Error:", error);
+        throw new Error("Image upload failed");
+    } finally {
+        // ALWAYS delete the local file, success or fail
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    }
+};
 
 // --- 1. CREATE PROFILE ---
-exports.createProfile = async (req, res) => {
+export const createProfile = async (req, res) => {
     try {
-        const { userId, name, age, city, bio, skills, email, phone, photo } = req.body;
+        const { userId, name, age, city, bio, skills, email, phone } = req.body;
+        const imageFile = req.file; 
 
         if (!name || !age || !city) {
             return res.json({ success: false, message: "Name, Age, and City are required." });
         }
 
+        let photoUrl = "";
+
+        if (imageFile) {
+            photoUrl = await uploadImageToCloudinary(imageFile.path);
+        }
+
         const newProfile = new profileModel({
-            userId, // Comes from userAuth middleware
-            name,
-            age,
-            city,
-            bio,
-            skills,
-            email,
-            phone,
-            photo
+            userId, name, age, city, bio, skills, email, phone,
+            photo: photoUrl
         });
 
         await newProfile.save();
         return res.json({ success: true, message: "Profile Card Created Successfully" });
 
     } catch (error) {
+        console.error(error);
         return res.json({ success: false, message: error.message });
     }
 };
 
-// --- 2. GET USER PROFILES ---
-exports.getUserProfiles = async (req, res) => {
+// --- 2. GET USER PROFILES (With Pagination) ---
+export const getUserProfiles = async (req, res) => {
     try {
-        const { userId } = req.body; // Comes from userAuth middleware
-        const profiles = await profileModel.find({ userId }).sort({ createdAt: -1 }); // Newest first
+        const { userId } = req.body;
+        
+        // Pagination Logic (Default: Page 1, 10 items)
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
 
-        return res.json({ success: true, profiles });
+        // Fetch paginated data
+        const profiles = await profileModel.find({ userId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        // Get total count for frontend logic
+        const total = await profileModel.countDocuments({ userId });
+
+        return res.json({ 
+            success: true, 
+            profiles,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            totalProfiles: total
+        });
 
     } catch (error) {
         return res.json({ success: false, message: error.message });
@@ -44,40 +84,67 @@ exports.getUserProfiles = async (req, res) => {
 };
 
 // --- 3. DELETE PROFILE ---
-exports.deleteProfile = async (req, res) => {
+export const deleteProfile = async (req, res) => {
     try {
-        const { id } = req.body; // Profile ID to delete (sent from frontend)
-        const { userId } = req.body; // User ID from auth (security check)
-
+        const { id, userId } = req.body;
         const profile = await profileModel.findOneAndDelete({ _id: id, userId });
-
-        if (!profile) {
-            return res.json({ success: false, message: "Profile not found or unauthorized" });
-        }
-
+        
+        if (!profile) return res.json({ success: false, message: "Profile not found" });
+        
         return res.json({ success: true, message: "Profile Deleted Successfully" });
-
     } catch (error) {
         return res.json({ success: false, message: error.message });
     }
 };
 
 // --- 4. UPDATE PROFILE ---
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
     try {
-        const { id, name, age, city, bio, skills, email, phone, photo, userId } = req.body;
+        const { id, userId, name, age, city, bio, skills, email, phone } = req.body;
+        const imageFile = req.file;
 
-        const updatedProfile = await profileModel.findOneAndUpdate(
-            { _id: id, userId }, // Find by ID AND User (Security)
-            { name, age, city, bio, skills, email, phone, photo },
-            { new: true } // Return the updated document
-        );
+        const profile = await profileModel.findOne({ _id: id, userId });
+        if (!profile) return res.json({ success: false, message: "Profile not found" });
 
-        if (!updatedProfile) {
-            return res.json({ success: false, message: "Update Failed or Unauthorized" });
+        // Update Text Fields
+        profile.name = name || profile.name;
+        profile.age = age || profile.age;
+        profile.city = city || profile.city;
+        profile.bio = bio || profile.bio;
+        profile.skills = skills || profile.skills;
+        profile.email = email || profile.email;
+        profile.phone = phone || profile.phone;
+
+        // Update Image ONLY if new one uploaded
+        if (imageFile) {
+            profile.photo = await uploadImageToCloudinary(imageFile.path);
         }
 
+        await profile.save();
         return res.json({ success: true, message: "Profile Updated" });
+
+    } catch (error) {
+        return res.json({ success: false, message: error.message });
+    }
+};
+
+// --- 5. GET PUBLIC PROFILE (For Sharing) ---
+export const getPublicProfile = async (req, res) => {
+    try {
+        const { id } = req.params; // Get ID from URL URL/:id
+
+        // Find and increment 'views' by 1
+        const profile = await profileModel.findByIdAndUpdate(
+            id, 
+            { $inc: { views: 1 } }, 
+            { new: true } // Return updated doc
+        );
+
+        if (!profile) {
+            return res.json({ success: false, message: "Profile not found" });
+        }
+
+        return res.json({ success: true, profile });
 
     } catch (error) {
         return res.json({ success: false, message: error.message });

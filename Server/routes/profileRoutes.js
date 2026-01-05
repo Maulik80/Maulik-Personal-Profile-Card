@@ -1,12 +1,14 @@
 import express from 'express';
 import { createProfile, getUserProfiles, updateProfile, deleteProfile } from '../controllers/profileController.js';
 import userAuth from '../middleware/userAuth.js';
+import upload from '../middleware/multer.js'; // <--- Import Multer
 
 const profileRouter = express.Router();
 
-profileRouter.post('/add', userAuth, createProfile);
+// Add 'upload.single' to intercept the 'photo' field
+profileRouter.post('/add', userAuth, upload.single('photo'), createProfile);
+profileRouter.post('/update', userAuth, upload.single('photo'), updateProfile);
 profileRouter.get('/get-user-profiles', userAuth, getUserProfiles);
-profileRouter.post('/update', userAuth, updateProfile);
 profileRouter.post('/delete', userAuth, deleteProfile);
 
 export default profileRouter;

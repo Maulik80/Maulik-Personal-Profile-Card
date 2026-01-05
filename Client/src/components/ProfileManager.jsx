@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react'; 
 import axios from 'axios'; 
 import { toast } from 'react-toastify'; 
+import { motion, AnimatePresence } from 'framer-motion'; // 1. Animation Library
 import ProfileCard from './ProfileCard';
 import ProfileForm from './ProfileForm';
+import ProfileSkeleton from './ProfileSkeleton'; // 2. Loading State
 import { AppContext } from '../context/AppContext';
 
-// Move logic here
 const ProfileManager = ({ theme }) => {
   const { isAccountVerified, isLoggedin, backendUrl } = useContext(AppContext);
 
@@ -15,45 +16,70 @@ const ProfileManager = ({ theme }) => {
 
   const [formData, setFormData] = useState(initialFormState); 
   const [profiles, setProfiles] = useState([]); 
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false); // Used for Form Actions
+  const [fetching, setFetching] = useState(false); // Used for List Loading
   const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // --- Pagination State ---
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const CHARACTER_LIMIT = 20;
   const BIO_LIMIT = 150;
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const PHONE_REGEX = /^[0-9]{10}$/;
 
-  // --- API Functions (Moved from Home.jsx) ---
-  const getAllProfiles = async () => {
+  // --- 1. Fetch Profiles (Paginated) ---
+  const getAllProfiles = async (isRefresh = false) => {
     if (!isLoggedin) return; 
+    
     try {
-      setLoading(true);
-      const { data } = await axios.get(backendUrl + '/api/profiles/get-user-profiles');
-      if (data.success) setProfiles(data.profiles);
-      else toast.error(data.message);
+      setFetching(true);
+      const currentPage = isRefresh ? 1 : page;
+      
+      // Fetch with Page & Limit
+      const { data } = await axios.get(`${backendUrl}/api/profiles/get-user-profiles?page=${currentPage}&limit=6`);
+      
+      if (data.success) {
+        if (isRefresh) {
+            setProfiles(data.profiles);
+            setPage(1); // Reset to page 1
+        } else {
+            setProfiles(prev => [...prev, ...data.profiles]); // Append data
+        }
+        // Check if there are more pages
+        setHasMore(data.currentPage < data.totalPages);
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
+      console.error(error);
       toast.error("Failed to fetch profiles");
     } finally {
-      setLoading(false);
+      setFetching(false);
     }
   };
 
+  // Initial Load & Load More
   useEffect(() => {
-    if (isLoggedin) getAllProfiles();
-    else setProfiles([]); 
-  }, [isLoggedin]);
+    if (isLoggedin) {
+        // Only fetch if it's not a refresh (handled manually) or if page > 1
+        if(page > 1) getAllProfiles(false);
+        else getAllProfiles(true);
+    } else {
+        setProfiles([]); 
+    }
+  }, [isLoggedin, page]);
 
-  // --- Handlers ---
+  // --- 2. Handlers ---
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       if (!file.type.startsWith('image/')) return toast.warning("Upload JPG/PNG.");
-      if (file.size > 1024 * 1024) return toast.warning("File under 1MB required.");
-      const reader = new FileReader();
-      reader.onloadend = () => setFormData(prev => ({ ...prev, photo: reader.result }));
-      reader.readAsDataURL(file);
+      if (file.size > 2 * 1024 * 1024) return toast.warning("File size must be under 2MB.");
+      setFormData(prev => ({ ...prev, photo: file }));
     }
   };
 
@@ -78,18 +104,36 @@ const ProfileManager = ({ theme }) => {
     if (Object.values(errors).some(err => err) || !formData.name) return toast.warning("Fix errors.");
 
     try {
-      setLoading(true);
-      let apiPath = editingId ? '/api/profiles/update' : '/api/profiles/add';
-      if (editingId) formData.id = editingId;
+      setLoading(true); // Form loading
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('age', formData.age);
+      formDataToSend.append('city', formData.city);
+      formDataToSend.append('bio', formData.bio);
+      formDataToSend.append('skills', formData.skills);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
+      if (editingId) formDataToSend.append('id', editingId);
+      if (formData.photo && typeof formData.photo !== 'string') {
+          formDataToSend.append('photo', formData.photo);
+      }
 
-      const { data } = await axios.post(backendUrl + apiPath, formData);
+      let apiPath = editingId ? '/api/profiles/update' : '/api/profiles/add';
+      const { data } = await axios.post(backendUrl + apiPath, formDataToSend);
+
       if (data.success) {
         toast.success(editingId ? "Updated!" : "Created!");
         setFormData(initialFormState);
         setEditingId(null);
-        getAllProfiles();
-      } else toast.error(data.message);
-    } catch (error) { toast.error(error.message); } finally { setLoading(false); }
+        getAllProfiles(true); // Refresh list to see changes
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (profile) => {
@@ -103,9 +147,17 @@ const ProfileManager = ({ theme }) => {
       try {
         setLoading(true);
         const { data } = await axios.post(backendUrl + '/api/profiles/delete', { id });
-        if (data.success) { toast.success("Deleted"); getAllProfiles(); }
-        else toast.error(data.message);
-      } catch (error) { toast.error(error.message); } finally { setLoading(false); }
+        if (data.success) { 
+            toast.success("Deleted"); 
+            getAllProfiles(true); 
+        } else {
+            toast.error(data.message);
+        }
+      } catch (error) { 
+        toast.error(error.message); 
+      } finally { 
+        setLoading(false); 
+      }
     }
   };
 
@@ -115,8 +167,8 @@ const ProfileManager = ({ theme }) => {
   };
 
   const completionPercentage = useMemo(() => {
-    const fields = Object.values(formData);
-    const filled = fields.filter(f => f !== '' && f !== null).length;
+    const fields = ['name', 'age', 'city', 'bio', 'skills', 'email', 'phone', 'photo'];
+    const filled = fields.filter(field => formData[field] && formData[field] !== '').length;
     return Math.round((filled / fields.length) * 100);
   }, [formData]);
 
@@ -127,17 +179,24 @@ const ProfileManager = ({ theme }) => {
 
   return (
     <div className="w-full max-w-6xl mt-8">
-       {/* Loading Spinner */}
-       {loading && <div className="loading-overlay"><div className="spinner"></div>Loading...</div>}
+       {/* Global Loading Overlay for Form Actions */}
+       {loading && (
+         <div className="loading-overlay">
+           <div className="spinner"></div>
+           <p>Processing...</p>
+         </div>
+       )}
 
        <div className="main-content">
+        {/* Form Section */}
         <section className="form-section">
           <div className="progress-container">
-            <span className="progress-label">Completion: {completionPercentage}%</span>
+            <span className="progress-label">Profile Completion: {completionPercentage}%</span>
             <div className="progress-track">
               <div className="progress-fill" style={{ width: `${completionPercentage}%` }}></div>
             </div>
           </div>
+          
           <ProfileForm 
             formData={formData} editingId={editingId} handleChange={handleChange} 
             handlePhotoChange={handlePhotoChange} handleSubmit={handleSubmit} 
@@ -145,17 +204,63 @@ const ProfileManager = ({ theme }) => {
             charLimit={CHARACTER_LIMIT} bioLimit={BIO_LIMIT}
           />
         </section>
+
         <hr />
+
+        {/* List Section */}
         <section className="list-section">
           <div className="search-container">
-            <input type="text" placeholder="🔍 Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-bar" />
+            <input 
+                type="text" placeholder="🔍 Search profiles..." 
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
+                className="search-bar" 
+            />
           </div>
+
           <div className="profiles-grid">
-            {filteredProfiles.map((profile) => (
-              <ProfileCard key={profile._id} profileData={{...profile, id: profile._id}} theme={theme} onEdit={() => handleEdit(profile)} onDelete={() => handleDelete(profile._id)} />
-            ))}
-            {filteredProfiles.length === 0 && !loading && <p className="empty-msg">No profiles found.</p>}
+            {/* 3. Skeleton Loading State (Initial) */}
+            {fetching && profiles.length === 0 ? (
+                // Show 6 Skeletons
+                [...Array(6)].map((_, i) => <ProfileSkeleton key={i} />)
+            ) : (
+                // 4. Animated List
+                <AnimatePresence>
+                    {filteredProfiles.map((profile, index) => (
+                    <motion.div
+                        key={profile._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                    >
+                        <ProfileCard 
+                            profileData={{...profile, id: profile._id}} 
+                            theme={theme} 
+                            onEdit={() => handleEdit(profile)} 
+                            onDelete={() => handleDelete(profile._id)} 
+                        />
+                    </motion.div>
+                    ))}
+                </AnimatePresence>
+            )}
+
+            {filteredProfiles.length === 0 && !fetching && (
+                <p className="empty-msg">No profiles found.</p>
+            )}
           </div>
+
+          {/* 5. Load More Button */}
+          {hasMore && !searchTerm && (
+              <div className="flex justify-center mt-8">
+                  <button 
+                    onClick={() => setPage(prev => prev + 1)}
+                    disabled={fetching}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {fetching ? 'Loading...' : 'Load More Results'}
+                  </button>
+              </div>
+          )}
         </section>
       </div>
     </div>
