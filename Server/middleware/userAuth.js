@@ -12,12 +12,13 @@ const userAuth = async (req, res, next) => {
         const tokenDecode = jwt.verify(token, process.env.JWT_SECRET);
 
         if (tokenDecode.id) {
-            // ✅ FIX: Ensure req.body exists before adding userId
-            if (!req.body) {
-                req.body = {};
-            }
-
+            // ✅ FIX: ID ને સુરક્ષિત જગ્યાએ સેવ કરો
+            req.userId = tokenDecode.id; 
+            
+            // જૂના કોડ માટે body માં પણ રાખો (optional)
+            if (!req.body) req.body = {};
             req.body.userId = tokenDecode.id; 
+
             next(); 
         } else {
             return res.json({ success: false, message: 'Not Authorized. Login Again.' });

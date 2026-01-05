@@ -1,7 +1,4 @@
-// server/controllers/profileController.js
-
-// ✅ FIX: Ensure the import matches the new file name exactly (case-sensitive)
-import profileModel from '..profileModel.js';
+import profileModel from '../models/profileModel.js'; // Ensure file is named 'profileModel.js'
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 
@@ -24,8 +21,14 @@ const uploadImageToCloudinary = async (filePath) => {
 // --- 1. CREATE PROFILE ---
 export const createProfile = async (req, res) => {
     try {
-        const { userId, name, age, city, bio, skills, email, phone } = req.body;
+        // ✅ FIX: Get userId from req.userId (Secure) instead of req.body
+        const userId = req.userId; 
+        const { name, age, city, bio, skills, email, phone } = req.body;
         const imageFile = req.file; 
+
+        if (!userId) {
+            return res.json({ success: false, message: "Authentication Failed: User ID missing" });
+        }
 
         if (!name || !age || !city) {
             return res.json({ success: false, message: "Name, Age, and City are required." });
@@ -54,20 +57,18 @@ export const createProfile = async (req, res) => {
 // --- 2. GET USER PROFILES (With Pagination) ---
 export const getUserProfiles = async (req, res) => {
     try {
-        const { userId } = req.body;
+        const userId = req.userId; // ✅ FIX
         
         // Pagination Logic (Default: Page 1, 10 items)
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        // Fetch paginated data
         const profiles = await profileModel.find({ userId })
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
-        // Get total count for frontend logic
         const total = await profileModel.countDocuments({ userId });
 
         return res.json({ 
@@ -86,7 +87,9 @@ export const getUserProfiles = async (req, res) => {
 // --- 3. DELETE PROFILE ---
 export const deleteProfile = async (req, res) => {
     try {
-        const { id, userId } = req.body;
+        const { id } = req.body;
+        const userId = req.userId; // ✅ FIX
+
         const profile = await profileModel.findOneAndDelete({ _id: id, userId });
         
         if (!profile) return res.json({ success: false, message: "Profile not found" });
@@ -100,7 +103,8 @@ export const deleteProfile = async (req, res) => {
 // --- 4. UPDATE PROFILE ---
 export const updateProfile = async (req, res) => {
     try {
-        const { id, userId, name, age, city, bio, skills, email, phone } = req.body;
+        const { id, name, age, city, bio, skills, email, phone } = req.body;
+        const userId = req.userId; // ✅ FIX
         const imageFile = req.file;
 
         const profile = await profileModel.findOne({ _id: id, userId });

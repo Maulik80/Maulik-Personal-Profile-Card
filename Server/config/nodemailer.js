@@ -1,5 +1,9 @@
 import nodemailer from 'nodemailer';
-import 'dotenv/config'; // Loads environment variables
+import 'dotenv/config'; 
+
+// Debugging Logs (આ તમને કન્સોલમાં બતાવશે કે ક્રેડેન્શિયલ લોડ થયા કે નહીં)
+console.log("User:", process.env.SMTP_USER);
+console.log("Pass:", process.env.SMTP_PASS ? "Yes (Loaded)" : "No (Missing!)");
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -14,9 +18,10 @@ const transporter = nodemailer.createTransport({
 // Verify connection configuration
 transporter.verify((error, success) => {
     if (error) {
-        console.log("❌ Brevo SMTP Error:", error);
+        // ✅ સાચી જગ્યા: error અહીં જ મળે
+        console.log(`❌ SMTP Error (${process.env.SMTP_HOST}):`, error);
     } else {
-        console.log("✅ Brevo SMTP is ready to send emails");
+        console.log("✅ SMTP Server is ready to send emails");
     }
 });
 
