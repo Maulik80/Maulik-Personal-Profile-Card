@@ -1,4 +1,3 @@
-/* Server/config/nodemailer.js */
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 
@@ -8,16 +7,21 @@ if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
 }
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com', // Default fallback
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: parseInt(process.env.SMTP_PORT) === 465, // True for 465, False for others
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '465'), // Default to 465 (Secure)
+    secure: parseInt(process.env.SMTP_PORT || '465') === 465, // True if 465
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
     },
+    // 👇 આ મહત્વનું છે (Timeout Fixes)
+    family: 4, // Force IPv4 (Gmail ઘણીવાર IPv6 માં ટાઈમઆઉટ આપે છે)
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000
 });
 
-// 2. Verify Connection (Clean Log)
+// 2. Verify Connection (Non-blocking)
 transporter.verify((error, success) => {
     if (error) {
         console.error(`❌ SMTP Connection Error (${process.env.SMTP_HOST}):`, error.message);
