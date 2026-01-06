@@ -1,4 +1,4 @@
-import profileModel from '../models/profileModel.js'; // Ensure file is named 'profileModel.js'
+import profileModel from '../models/temp.js'; // Ensure file is named 'profileModel.js'
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 
