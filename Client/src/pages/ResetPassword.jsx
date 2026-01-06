@@ -1,38 +1,34 @@
 import React, { useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // 1. Import useSearchParams
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
 import { toast } from 'react-toastify';
-import '../styles/App.css';
+import { KeyRound, Mail, Lock, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 
 const ResetPassword = () => {
-  // State for form fields
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [step, setStep] = useState(1); // 1: Send OTP, 2: Reset Password
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   
   const { backendUrl } = useContext(AppContext);
   const navigate = useNavigate();
-
-  // 2. Get Query Parameters from URL (Magic Link)
   const [searchParams] = useSearchParams();
 
-  // 3. Auto-fill and Auto-advance if link is clicked
   useEffect(() => {
       const emailParam = searchParams.get('email');
       const otpParam = searchParams.get('otp');
-
       if (emailParam && otpParam) {
           setEmail(emailParam);
           setOtp(otpParam);
-          setStep(2); // Skip straight to "Enter New Password"
+          setStep(2);
       }
   }, [searchParams]);
 
-  // --- Handle Sending OTP (Manual Flow) ---
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const { data } = await axios.post(backendUrl + '/api/auth/send-reset-otp', { email });
       if (data.success) {
@@ -43,12 +39,14 @@ const ResetPassword = () => {
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+        setLoading(false);
     }
   };
 
-  // --- Handle Password Reset (Final Step) ---
   const handleReset = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const { data } = await axios.post(backendUrl + '/api/auth/reset-password', { email, otp, newPassword });
       if (data.success) {
@@ -59,57 +57,79 @@ const ResetPassword = () => {
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+        setLoading(false);
     }
   };
 
   return (
-    <div className="app-container light-theme">
-      <div className="input-form" style={{ maxWidth: '400px', marginTop: '50px' }}>
-        <h2>🔐 Reset Password</h2>
+    <div className="flex items-center justify-center min-h-screen p-4 transition-colors duration-500 bg-gray-50 dark:bg-slate-900">
+      <div className="w-full max-w-md p-8 transition-all border shadow-2xl rounded-3xl bg-white/60 dark:bg-white/10 backdrop-blur-xl border-white/50 dark:border-white/10">
         
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-500 shadow-orange-500/30">
+            <KeyRound className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Reset Password</h2>
+          <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
+            {step === 1 ? "Enter email to receive a reset code" : "Create a new secure password"}
+          </p>
+        </div>
+
         {step === 1 ? (
-          // STEP 1: Email Input
-          <form onSubmit={handleSendOtp}>
-            <div className="input-group">
-              <label>Email Address</label>
+          <form onSubmit={handleSendOtp} className="space-y-6">
+            <div className="relative group">
+              <Mail className="absolute text-gray-400 dark:text-slate-400 top-3.5 left-4 group-focus-within:text-orange-500 transition-colors" size={20} />
               <input 
                 type="email" 
+                placeholder="Registered Email"
+                className="w-full py-3 pl-12 pr-4 text-gray-800 transition-all border border-gray-200 outline-none dark:text-white bg-white/50 dark:bg-slate-950/50 dark:border-white/10 rounded-xl focus:border-orange-500 focus:bg-white dark:focus:bg-slate-950/80"
                 onChange={(e) => setEmail(e.target.value)} 
                 value={email} 
                 required 
-                placeholder="Enter your registered email"
               />
             </div>
-            <button type="submit" className="save-btn">Send OTP</button>
+            <button 
+                type="submit" 
+                disabled={loading}
+                className="flex items-center justify-center w-full gap-2 py-3.5 font-bold text-white transition-all shadow-lg rounded-xl bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 active:scale-95 disabled:opacity-70"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : <>Send Code <ArrowRight size={18} /></>}
+            </button>
           </form>
         ) : (
-          // STEP 2: OTP & New Password
-          <form onSubmit={handleReset}>
-            {/* We hide the OTP field if it was auto-filled to keep UI clean, 
-                but keep it editable just in case. */}
-            <div className="input-group">
-              <label>OTP Code</label>
-              <input 
-                type="text" 
-                onChange={(e) => setOtp(e.target.value)} 
-                value={otp} 
-                required 
-                placeholder="Check your email for code"
-              />
+          <form onSubmit={handleReset} className="space-y-6">
+            <div className="space-y-4">
+                <div className="relative group">
+                    <CheckCircle className="absolute text-gray-400 dark:text-slate-400 top-3.5 left-4" size={20} />
+                    <input 
+                        type="text" 
+                        placeholder="OTP Code"
+                        className="w-full py-3 pl-12 pr-4 text-gray-800 transition-all border border-gray-200 outline-none dark:text-white bg-white/50 dark:bg-slate-950/50 dark:border-white/10 rounded-xl focus:border-green-500"
+                        onChange={(e) => setOtp(e.target.value)} 
+                        value={otp} 
+                        required 
+                    />
+                </div>
+                <div className="relative group">
+                    <Lock className="absolute text-gray-400 dark:text-slate-400 top-3.5 left-4 group-focus-within:text-green-500" size={20} />
+                    <input 
+                        type="password" 
+                        placeholder="New Password"
+                        className="w-full py-3 pl-12 pr-4 text-gray-800 transition-all border border-gray-200 outline-none dark:text-white bg-white/50 dark:bg-slate-950/50 dark:border-white/10 rounded-xl focus:border-green-500"
+                        onChange={(e) => setNewPassword(e.target.value)} 
+                        value={newPassword} 
+                        required 
+                    />
+                </div>
             </div>
-            
-            <div className="input-group">
-              <label>New Password</label>
-              <input 
-                type="password" 
-                onChange={(e) => setNewPassword(e.target.value)} 
-                value={newPassword} 
-                required 
-                placeholder="Enter new secure password"
-              />
-            </div>
-            
-            <button type="submit" className="save-btn">Reset Password</button>
+            <button 
+                type="submit" 
+                disabled={loading}
+                className="flex items-center justify-center w-full gap-2 py-3.5 font-bold text-white transition-all shadow-lg rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 active:scale-95 disabled:opacity-70"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : 'Reset Password'}
+            </button>
           </form>
         )}
       </div>

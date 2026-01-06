@@ -2,4 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ... your other global styles can go below ... */
+@layer base {
+  :root {
+    /* Soft Silver Background */
+    --background: 220 15% 90%; 
+    
+    /* Text Color */
+    --foreground: 222 47% 10%;
+    
+    /* Card Background */
+    --card: 210 20% 98%;
+    
+    /* 👇 FIX: Darker Border for Light Mode (Was 85%, now 75%) */
+    --border: 214 20% 75%; 
+  }
+
+  .dark {
+    --background: 222 47% 4%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --border: 217 33% 20%;
+  }
+
+  body {
+    @apply antialiased transition-colors duration-500 bg-gray-200 text-slate-900 dark:bg-slate-950 dark:text-white;
+    background-color: hsl(var(--background)); 
+  }
+}
+
+@layer components {
+  /* 👇 FIX: Glass Card Border - Grey in Light Mode, White in Dark Mode */
+  .glass-card {
+    @apply border border-gray-300 shadow-xl bg-white/80 dark:bg-white/5 backdrop-blur-xl dark:border-white/10;
+  }
+}

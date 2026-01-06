@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { Sun, Moon } from 'lucide-react';
 
 const ThemeToggle = () => {
-  // 1. Initialize State from LocalStorage
   const [theme, setTheme] = useState(() => 
     localStorage.getItem('profile-card-theme') || 'light'
   );
 
-  // 2. Effect: Apply theme to Body & Save to LocalStorage
   useEffect(() => {
-    // Apply class to the <body> tag so it affects the whole app globally
-    document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
+    // inside useEffect
+const root = window.document.documentElement; // Select <html>
+if (theme === 'dark') {
+  root.classList.add('dark');
+} else {
+  root.classList.remove('dark');
+}
+    
     localStorage.setItem('profile-card-theme', theme);
   }, [theme]);
 
-  // 3. Toggle Function
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
@@ -21,17 +25,16 @@ const ThemeToggle = () => {
   return (
     <button
       onClick={toggleTheme}
-      aria-label="Toggle Dark Mode" // Accessibility requirement
-      className="p-2 rounded-full transition-colors duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-      title={theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"}
+      aria-label="Toggle Dark Mode"
+      className="relative p-2 transition-all duration-300 border border-transparent rounded-full bg-white/5 hover:bg-white/20 hover:border-white/10 group"
     >
-      {theme === 'light' ? (
-        // Moon Icon (for Light Mode)
-        <span className="text-xl">🌙</span>
-      ) : (
-        // Sun Icon (for Dark Mode)
-        <span className="text-xl">☀️</span>
-      )}
+      <div className="transition-transform duration-500 transform group-hover:rotate-180">
+        {theme === 'light' ? (
+          <Moon size={20} className="text-slate-700 dark:text-slate-200" /> 
+        ) : (
+          <Sun size={20} className="text-yellow-400" />
+        )}
+      </div>
     </button>
   );
 };

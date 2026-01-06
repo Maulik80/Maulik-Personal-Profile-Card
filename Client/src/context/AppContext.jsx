@@ -16,8 +16,11 @@ export const AppContextProvider = (props) => {
     const [isLoggedin, setIsLoggedin] = useState(false);
     const [userData, setUserData] = useState(null);
     const [isAccountVerified, setIsAccountVerified] = useState(false);
+    
+    // ✅ NEW: Loading state to prevent "flicker" of Login button on refresh
+    const [appLoading, setAppLoading] = useState(true);
 
-    // --- 1. Define getUserData FIRST ---
+    // --- 1. Get User Data (Profile Info) ---
     const getUserData = async () => {
         try {
             const { data } = await axios.get(backendUrl + '/api/user/data');
@@ -28,23 +31,27 @@ export const AppContextProvider = (props) => {
                 toast.error(data.message);
             }
         } catch (error) {
-            // Optional: toast.error("Failed to load user data"); 
-            // Kept silent to avoid spamming errors on logout
+            console.error("User Data Error:", error.message);
+            // Don't toast here to avoid spamming on session expiry
         }
     };
 
-    // --- 2. Define getAuthState SECOND (Because it uses getUserData) ---
+    // --- 2. Check Auth Status (Run on App Start) ---
     const getAuthState = async () => {
+        setAppLoading(true);
         try {
             const { data } = await axios.get(backendUrl + '/api/auth/is-auth');
             if (data.success) {
                 setIsLoggedin(true);
-                getUserData(); // <--- Now this works because getUserData exists above
+                await getUserData(); // Wait for user data before finishing loading
             } else {
                 setIsLoggedin(false);
             }
         } catch (error) {
             console.error("Auth Check Failed:", error.message);
+            setIsLoggedin(false);
+        } finally {
+            setAppLoading(false);
         }
     };
 
@@ -56,7 +63,7 @@ export const AppContextProvider = (props) => {
                 setIsLoggedin(false);
                 setUserData(null);
                 setIsAccountVerified(false);
-                toast.success("Logged Out Successfully");
+                toast.info("Logged Out Successfully 👋");
             } else {
                 toast.error(data.message);
             }
@@ -75,6 +82,7 @@ export const AppContextProvider = (props) => {
         isLoggedin, setIsLoggedin,
         userData, setUserData,
         isAccountVerified, setIsAccountVerified,
+        appLoading, // Exported so pages can show a spinner if needed
         getUserData, 
         getAuthState,
         logout

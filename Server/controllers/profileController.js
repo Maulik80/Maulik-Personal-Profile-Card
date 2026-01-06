@@ -88,15 +88,18 @@ export const getUserProfiles = async (req, res) => {
 export const deleteProfile = async (req, res) => {
     try {
         const { id } = req.body;
-        const userId = req.userId; // ✅ FIX
+        const userId = req.userId; 
 
         const profile = await profileModel.findOneAndDelete({ _id: id, userId });
         
-        if (!profile) return res.json({ success: false, message: "Profile not found" });
+        if (!profile) {
+            // ✅ 404: Not Found (or 403 Forbidden effectively)
+            return res.status(404).json({ success: false, message: "Profile not found or unauthorized" });
+        }
         
-        return res.json({ success: true, message: "Profile Deleted Successfully" });
+        return res.status(200).json({ success: true, message: "Profile Deleted Successfully" });
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 

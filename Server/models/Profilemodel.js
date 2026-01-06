@@ -1,15 +1,19 @@
 import mongoose from "mongoose";
 
 const profileSchema = new mongoose.Schema({
-    userId: { type: String, required: true }, // Links card to the logged-in user
-    name: { type: String, required: true },
-    age: { type: String, required: true },
-    city: { type: String, required: true },
-    bio: { type: String },
-    skills: { type: String },
-    email: { type: String },
-    phone: { type: String },
-    photo: { type: String }, // Stores Base64 image string
+    userId: { 
+        type: mongoose.Schema.Types.ObjectId, // ✅ Proper DB Link
+        ref: 'user', // Reference to the 'user' model
+        required: true 
+    }, 
+    name: { type: String, required: true, trim: true },
+    age: { type: Number, required: true }, // ✅ Changed to Number
+    city: { type: String, required: true, trim: true },
+    bio: { type: String, default: '', trim: true },
+    skills: { type: String, default: '', trim: true }, // Stored as "React, Node, CSS"
+    email: { type: String, default: '', trim: true, lowercase: true },
+    phone: { type: String, default: '', trim: true },
+    photo: { type: String, default: '' }, // Stores Cloudinary URL
     views: { type: Number, default: 0 }
 }, { timestamps: true });
 

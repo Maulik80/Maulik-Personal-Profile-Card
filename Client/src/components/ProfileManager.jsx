@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react'; 
 import axios from 'axios'; 
 import { toast } from 'react-toastify'; 
-import { motion, AnimatePresence } from 'framer-motion'; // 1. Animation Library
+import { motion, AnimatePresence } from 'framer-motion'; 
+import { RefreshCw, Search, Sparkles } from 'lucide-react'; // ✅ Modern Icons
 import ProfileCard from './ProfileCard';
 import ProfileForm from './ProfileForm';
-import ProfileSkeleton from './ProfileSkeleton'; // 2. Loading State
+import ProfileSkeleton from './ProfileSkeleton'; 
 import { AppContext } from '../context/AppContext';
 
 const ProfileManager = ({ theme }) => {
@@ -16,8 +17,8 @@ const ProfileManager = ({ theme }) => {
 
   const [formData, setFormData] = useState(initialFormState); 
   const [profiles, setProfiles] = useState([]); 
-  const [loading, setLoading] = useState(false); // Used for Form Actions
-  const [fetching, setFetching] = useState(false); // Used for List Loading
+  const [loading, setLoading] = useState(false); // Form Action Loading
+  const [fetching, setFetching] = useState(false); // List Fetch Loading
   const [errors, setErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,17 +40,15 @@ const ProfileManager = ({ theme }) => {
       setFetching(true);
       const currentPage = isRefresh ? 1 : page;
       
-      // Fetch with Page & Limit
       const { data } = await axios.get(`${backendUrl}/api/profiles/get-user-profiles?page=${currentPage}&limit=6`);
       
       if (data.success) {
         if (isRefresh) {
             setProfiles(data.profiles);
-            setPage(1); // Reset to page 1
+            setPage(1); 
         } else {
-            setProfiles(prev => [...prev, ...data.profiles]); // Append data
+            setProfiles(prev => [...prev, ...data.profiles]); 
         }
-        // Check if there are more pages
         setHasMore(data.currentPage < data.totalPages);
       } else {
         toast.error(data.message);
@@ -62,10 +61,9 @@ const ProfileManager = ({ theme }) => {
     }
   };
 
-  // Initial Load & Load More
+  // Initial Load & Pagination Trigger
   useEffect(() => {
     if (isLoggedin) {
-        // Only fetch if it's not a refresh (handled manually) or if page > 1
         if(page > 1) getAllProfiles(false);
         else getAllProfiles(true);
     } else {
@@ -104,28 +102,22 @@ const ProfileManager = ({ theme }) => {
     if (Object.values(errors).some(err => err) || !formData.name) return toast.warning("Fix errors.");
 
     try {
-      setLoading(true); // Form loading
+      setLoading(true);
       const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('age', formData.age);
-      formDataToSend.append('city', formData.city);
-      formDataToSend.append('bio', formData.bio);
-      formDataToSend.append('skills', formData.skills);
-      formDataToSend.append('email', formData.email);
-      formDataToSend.append('phone', formData.phone);
+      Object.keys(formData).forEach(key => {
+          if(key === 'photo' && typeof formData[key] === 'string') return; // Skip URL string photo
+          formDataToSend.append(key, formData[key]);
+      });
       if (editingId) formDataToSend.append('id', editingId);
-      if (formData.photo && typeof formData.photo !== 'string') {
-          formDataToSend.append('photo', formData.photo);
-      }
 
       let apiPath = editingId ? '/api/profiles/update' : '/api/profiles/add';
       const { data } = await axios.post(backendUrl + apiPath, formDataToSend);
 
       if (data.success) {
-        toast.success(editingId ? "Updated!" : "Created!");
+        toast.success(editingId ? "Profile Updated! 🚀" : "Profile Created! ✨");
         setFormData(initialFormState);
         setEditingId(null);
-        getAllProfiles(true); // Refresh list to see changes
+        getAllProfiles(true); 
       } else {
         toast.error(data.message);
       }
@@ -143,12 +135,12 @@ const ProfileManager = ({ theme }) => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete permanently?")) {
+    if (window.confirm("Are you sure you want to delete this profile?")) {
       try {
         setLoading(true);
         const { data } = await axios.post(backendUrl + '/api/profiles/delete', { id });
         if (data.success) { 
-            toast.success("Deleted"); 
+            toast.success("Profile Deleted"); 
             getAllProfiles(true); 
         } else {
             toast.error(data.message);
@@ -163,9 +155,10 @@ const ProfileManager = ({ theme }) => {
 
   const handleReset = () => {
     if (editingId) { setEditingId(null); setFormData(initialFormState); }
-    else if (window.confirm("Clear form?")) { setFormData(initialFormState); setErrors({}); }
+    else if (window.confirm("Clear all form data?")) { setFormData(initialFormState); setErrors({}); }
   };
 
+  // --- 3. Computed Values ---
   const completionPercentage = useMemo(() => {
     const fields = ['name', 'age', 'city', 'bio', 'skills', 'email', 'phone', 'photo'];
     const filled = fields.filter(field => formData[field] && formData[field] !== '').length;
@@ -178,22 +171,32 @@ const ProfileManager = ({ theme }) => {
   );
 
   return (
-    <div className="w-full max-w-6xl mt-8">
-       {/* Global Loading Overlay for Form Actions */}
+    <div className="w-full min-h-screen pt-24 pb-12">
+       
+       {/* 🌀 Global Loading Overlay */}
        {loading && (
-         <div className="loading-overlay">
-           <div className="spinner"></div>
-           <p>Processing...</p>
+         <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+           <RefreshCw className="mb-4 text-blue-400 animate-spin w-14 h-14" />
+           <p className="text-lg font-bold text-white animate-pulse">Processing...</p>
          </div>
        )}
 
-       <div className="main-content">
-        {/* Form Section */}
-        <section className="form-section">
-          <div className="progress-container">
-            <span className="progress-label">Profile Completion: {completionPercentage}%</span>
-            <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${completionPercentage}%` }}></div>
+       <div className="container max-w-6xl px-4 mx-auto">
+        
+        {/* 📝 Form Section */}
+        <section className="mb-16 animate-fade-in">
+          
+          {/* Progress Bar */}
+          <div className="max-w-4xl mx-auto mb-6">
+            <div className="flex justify-between mb-2 text-sm font-semibold text-gray-400">
+               <span className="flex items-center gap-2"><Sparkles size={14} className="text-yellow-400"/> Profile Strength</span>
+               <span className="text-white">{completionPercentage}%</span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-white/10 backdrop-blur-sm">
+               <div 
+                 className="h-full transition-all duration-700 shadow-[0_0_10px_rgba(59,130,246,0.5)] bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" 
+                 style={{ width: `${completionPercentage}%` }}
+               />
             </div>
           </div>
           
@@ -205,33 +208,38 @@ const ProfileManager = ({ theme }) => {
           />
         </section>
 
-        <hr />
-
-        {/* List Section */}
-        <section className="list-section">
-          <div className="search-container">
-            <input 
-                type="text" placeholder="🔍 Search profiles..." 
-                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
-                className="search-bar" 
-            />
+        {/* 🗂️ Collection Section */}
+        <section>
+          {/* Header & Search */}
+          <div className="flex flex-col items-center justify-between gap-6 mb-10 md:flex-row">
+             <h2 className="text-3xl font-bold text-white drop-shadow-md">
+               My <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Collection</span>
+             </h2>
+             
+             <div className="relative w-full md:w-72 group">
+                <Search className="absolute text-gray-400 transition-colors transform -translate-y-1/2 left-4 top-1/2 group-focus-within:text-blue-400" size={18} />
+                <input 
+                    type="text" placeholder="Search profiles..." 
+                    value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
+                    className="w-full py-3 pl-12 pr-4 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-2xl focus:bg-white/10 focus:border-blue-500/50 focus:shadow-lg backdrop-blur-sm" 
+                />
+             </div>
           </div>
 
-          <div className="profiles-grid">
-            {/* 3. Skeleton Loading State (Initial) */}
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {/* Loading Skeletons */}
             {fetching && profiles.length === 0 ? (
-                // Show 6 Skeletons
                 [...Array(6)].map((_, i) => <ProfileSkeleton key={i} />)
             ) : (
-                // 4. Animated List
-                <AnimatePresence>
+                <AnimatePresence mode="popLayout">
                     {filteredProfiles.map((profile, index) => (
                     <motion.div
-                        key={profile._id}
-                        initial={{ opacity: 0, y: 20 }}
+                        key={profile._id || profile.id}
+                        initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                        transition={{ duration: 0.4, delay: index * 0.05 }}
                     >
                         <ProfileCard 
                             profileData={{...profile, id: profile._id}} 
@@ -244,20 +252,24 @@ const ProfileManager = ({ theme }) => {
                 </AnimatePresence>
             )}
 
+            {/* Empty State */}
             {filteredProfiles.length === 0 && !fetching && (
-                <p className="empty-msg">No profiles found.</p>
+                <div className="py-20 text-center col-span-full opacity-60">
+                   <p className="text-xl text-gray-300">No profiles found matching your search. 🔍</p>
+                </div>
             )}
           </div>
 
-          {/* 5. Load More Button */}
-          {hasMore && !searchTerm && (
-              <div className="flex justify-center mt-8">
+          {/* Load More Button */}
+          {hasMore && !searchTerm && profiles.length > 0 && (
+              <div className="flex justify-center mt-12 mb-8">
                   <button 
                     onClick={() => setPage(prev => prev + 1)}
                     disabled={fetching}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
+                    className="flex items-center gap-2 px-8 py-3 text-sm font-bold text-white transition-all border rounded-full shadow-lg bg-white/10 hover:bg-white/20 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-md border-white/10"
                   >
-                    {fetching ? 'Loading...' : 'Load More Results'}
+                    {fetching ? <RefreshCw className="animate-spin" size={18} /> : null}
+                    {fetching ? 'Loading...' : 'Load More Profiles'}
                   </button>
               </div>
           )}

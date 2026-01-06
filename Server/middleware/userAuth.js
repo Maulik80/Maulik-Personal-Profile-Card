@@ -2,29 +2,27 @@
 import jwt from 'jsonwebtoken';
 
 const userAuth = async (req, res, next) => {
-    const { token } = req.cookies;
-
-    if (!token) {
-        return res.json({ success: false, message: 'Not Authorized. Login Again.' });
-    }
-
     try {
+        const { token } = req.cookies;
+
+        if (!token) {
+            // ✅ 401: Unauthorized
+            return res.status(401).json({ success: false, message: 'Not Authorized. Login Again.' });
+        }
+
         const tokenDecode = jwt.verify(token, process.env.JWT_SECRET);
 
         if (tokenDecode.id) {
-            // ✅ FIX: ID ને સુરક્ષિત જગ્યાએ સેવ કરો
+            // ✅ Securely attach User ID to request object
             req.userId = tokenDecode.id; 
-            
-            // જૂના કોડ માટે body માં પણ રાખો (optional)
-            if (!req.body) req.body = {};
-            req.body.userId = tokenDecode.id; 
-
             next(); 
         } else {
-            return res.json({ success: false, message: 'Not Authorized. Login Again.' });
+            return res.status(401).json({ success: false, message: 'Not Authorized. Login Again.' });
         }
+
     } catch (error) {
-        return res.json({ success: false, message: error.message });
+        // ✅ 401 if token is expired/invalid
+        return res.status(401).json({ success: false, message: 'Session Expired. Please Login.' });
     }
 }
 

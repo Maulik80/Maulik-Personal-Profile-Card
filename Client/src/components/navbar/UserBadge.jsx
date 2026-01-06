@@ -6,28 +6,31 @@ const UserBadge = () => {
   const { isLoggedin, userData } = useContext(AppContext);
   const navigate = useNavigate();
 
-  // 1. Guest View: If not logged in, show Login Button
   if (!isLoggedin) {
     return (
       <button 
         onClick={() => navigate('/login')}
-        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-all shadow-md"
+        className="px-5 py-2 text-sm font-bold text-white transition-all duration-300 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] hover:-translate-y-0.5"
       >
         Login
       </button>
     );
   }
 
-  // 2. User View: If logged in, show Initials Avatar
-  // Get the first letter of the name (e.g., "Maulik" -> "M")
   const userInitial = userData?.name ? userData.name[0].toUpperCase() : 'U';
 
   return (
-    <div 
-      className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md border-2 border-white cursor-pointer hover:scale-105 transition-transform"
-      title={userData?.name || "User"}
-    >
-      {userInitial}
+    <div className="relative cursor-pointer group">
+      {/* Glowing Ring Effect */}
+      <div className="absolute transition-opacity duration-300 rounded-full -inset-1 bg-gradient-to-r from-purple-500 to-pink-500 opacity-70 blur-sm group-hover:opacity-100 animate-pulse"></div>
+      
+      {/* Badge Content */}
+      <div 
+        className="relative flex items-center justify-center w-10 h-10 text-lg font-bold text-white border-2 rounded-full bg-slate-900 border-white/20"
+        title={userData?.name}
+      >
+        {userInitial}
+      </div>
     </div>
   );
 };

@@ -1,41 +1,32 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-
-// Import the sub-components (currently placeholders)
 import ThemeToggle from './ThemeToggle';
 import UserMenu from './UserMenu';
-import UserBadge from './UserBadge'; // We might need this inside UserMenu later, but let's stick to the plan
 
 const NavBar = () => {
   const navigate = useNavigate();
 
   return (
-    // <header>: The semantic wrapper for introduction content
-    <header className="w-full absolute top-0 z-50 px-4 sm:px-10 py-5">
+    <header className="fixed top-0 z-50 w-full px-4 py-4 transition-all duration-300 sm:px-8">
       
-      {/* <nav>: Semantic tag for navigation links */}
-     <nav className="flex justify-between items-center max-w-7xl mx-auto px-2 sm:px-0">
+      {/* Glassmorphism Container */}
+      <nav className="flex items-center justify-between px-6 py-3 mx-auto border shadow-lg max-w-7xl rounded-2xl bg-white/10 dark:bg-black/20 backdrop-blur-md border-white/20">
         
-        {/* LEFT SIDE: Brand Identity */}
+        {/* LEFT: Brand Logo */}
         <div 
-          className="flex items-center gap-2 cursor-pointer transition-transform hover:scale-105"
+          className="flex items-center gap-2 cursor-pointer group"
           onClick={() => navigate('/')}
         >
-          {/* Simple Text Logo with Gradient */}
-          <span className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
+          <span className="text-2xl font-extrabold text-transparent transition-all duration-300 bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 drop-shadow-sm group-hover:from-blue-400 group-hover:to-pink-400">
             BioStack
           </span>
         </div>
 
-        {/* RIGHT SIDE: Action Container */}
-        <div className="flex items-center gap-3 sm:gap-4 bg-white/10 backdrop-blur-sm p-1 rounded-full border border-gray-200/20 shadow-sm">
-          
-          {/* Slot 1: Theme Toggle */}
+        {/* RIGHT: Actions */}
+        <div className="flex items-center gap-4">
           <ThemeToggle />
-
-          {/* Slot 2: User Menu (Dropdown) */}
+          <div className="w-px h-6 mx-1 bg-white/20"></div> {/* Vertical Divider */}
           <UserMenu />
-          
         </div>
 
       </nav>
