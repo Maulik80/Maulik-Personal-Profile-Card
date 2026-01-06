@@ -1,3 +1,4 @@
+/* Server/config/nodemailer.js */
 import nodemailer from 'nodemailer';
 import 'dotenv/config';
 
@@ -7,26 +8,24 @@ if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
 }
 
 const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '465'), // Default to 465 (Secure)
-    secure: parseInt(process.env.SMTP_PORT || '465') === 465, // True if 465
+    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com', // Brevo Host
+    port: parseInt(process.env.SMTP_PORT || '587'), // Brevo uses 587
+    secure: false, // Must be false for Port 587 (It uses STARTTLS automatically)
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
     },
-    // 👇 આ મહત્વનું છે (Timeout Fixes)
-    family: 4, // Force IPv4 (Gmail ઘણીવાર IPv6 માં ટાઈમઆઉટ આપે છે)
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,
-    socketTimeout: 10000
+    // Keep these settings for stability on Render
+    family: 4, 
+    connectionTimeout: 10000,
 });
 
-// 2. Verify Connection (Non-blocking)
+// 2. Verify Connection
 transporter.verify((error, success) => {
     if (error) {
         console.error(`❌ SMTP Connection Error (${process.env.SMTP_HOST}):`, error.message);
     } else {
-        console.log("✅ SMTP Server is Ready");
+        console.log("✅ Brevo SMTP Server is Ready");
     }
 });
 
